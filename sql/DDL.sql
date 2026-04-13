@@ -1,7 +1,4 @@
--- =============================================
--- Tabelas para sistema de voltas / corridas
--- Compatível com suas rotas de ranking em Node.js
--- =============================================
+-- MySQL Workbench Forward Engineering
 
 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
@@ -10,63 +7,63 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 -- -----------------------------------------------------
 -- Schema corridas_db
 -- -----------------------------------------------------
-DROP SCHEMA IF EXISTS `corridas_db`;
-CREATE SCHEMA IF NOT EXISTS `corridas_db` DEFAULT CHARACTER SET utf8mb4;
-USE `corridas_db`;
+DROP SCHEMA IF EXISTS `corridas_db` ;
 
 -- -----------------------------------------------------
--- Table `users` (já existia)
+-- Schema corridas_db
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `users`;
-CREATE TABLE IF NOT EXISTS `users` (
+CREATE SCHEMA IF NOT EXISTS `corridas_db` DEFAULT CHARACTER SET utf8 ;
+USE `corridas_db` ;
+
+-- -----------------------------------------------------
+-- Table `corridas_db`.`users`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `corridas_db`.`users` ;
+
+CREATE TABLE IF NOT EXISTS `corridas_db`.`users` (
   `id_users` INT NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(255) NOT NULL,
-  `email` VARCHAR(255) NOT NULL UNIQUE,
+  `email` VARCHAR(255) NOT NULL,
   `senha` VARCHAR(255) NOT NULL,
-  PRIMARY KEY (`id_users`)
-) ENGINE = InnoDB;
+  PRIMARY KEY (`id_users`))
+ENGINE = InnoDB;
+
 
 -- -----------------------------------------------------
--- Table `corredores`
+-- Table `corridas_db`.`corredores`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `corredores`;
-CREATE TABLE IF NOT EXISTS `corredores` (
+DROP TABLE IF EXISTS `corridas_db`.`corredores` ;
+
+CREATE TABLE IF NOT EXISTS `corridas_db`.`corredores` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(255) NOT NULL,
-  `email` VARCHAR(255) NOT NULL UNIQUE,
+  `email` VARCHAR(255) NOT NULL,
   `senha` VARCHAR(255) NOT NULL,
   `turma` VARCHAR(255) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE = InnoDB;
+  `equipe` VARCHAR(255) NOT NULL,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB;
+
 
 -- -----------------------------------------------------
--- Table `voltas`  ←←← ESSA É A PRINCIPAL QUE VOCÊ PRECISA
+-- Table `corridas_db`.`voltas`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `voltas`;
-CREATE TABLE `voltas` (
-    `id_volta`          INT NOT NULL AUTO_INCREMENT,
-    `id_corredor`       INT NOT NULL,
-    `data_hora_inicio`  DATETIME(3) NOT NULL,        -- início da volta com milissegundos
-    `data_hora_fim`     DATETIME(3) NULL,
-    `tempo_volta_ms`    INT UNSIGNED NULL,           -- tempo final em milissegundos (usado nos rankings)
-    `status`            ENUM('em_andamento', 'finalizada', 'cancelada') DEFAULT 'em_andamento',
-    `created_at`        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+DROP TABLE IF EXISTS `corridas_db`.`voltas` ;
 
-    PRIMARY KEY (`id_volta`),
-    
-    FOREIGN KEY (`id_corredor`) REFERENCES `corredores`(`id`) 
-        ON DELETE CASCADE ON UPDATE CASCADE,
-    
-    INDEX `idx_corredor_status` (`id_corredor`, `status`),
-    INDEX `idx_data_inicio` (`data_hora_inicio`),
-    INDEX `idx_tempo_final` (`tempo_volta_ms`)
-) ENGINE = InnoDB;
+CREATE TABLE IF NOT EXISTS `corridas_db`.`voltas` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `tempo` DECIMAL NOT NULL,
+  `data` TIMESTAMP NOT NULL,
+  `corredores_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_voltas_corredores_idx` (`corredores_id` ASC) VISIBLE,
+  CONSTRAINT `fk_voltas_corredores`
+    FOREIGN KEY (`corredores_id`)
+    REFERENCES `corridas_db`.`corredores` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
 
--- =============================================
--- Teste rápido após criar as tabelas
--- =============================================
--- SELECT * FROM voltas;
--- DESCRIBE voltas;
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;

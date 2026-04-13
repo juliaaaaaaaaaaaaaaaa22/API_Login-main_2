@@ -1,53 +1,79 @@
 const express = require('express');
-const corredoresRoutes = express.Router();
+const router = express.Router();
 const db = require('../db');
 
-corredoresRoutes.get('/', (req, res) => {
-    db.query('SELECT * FROM corredores', (err, results) => {
-        if (err) {
-            console.error('Error fetching corredores:', err);
-            res.status(500).json({ error: 'Internal server error' });
-        } else {
-            res.json(results);
-        }
-    });
+// LISTAR TODOS OS CORREDORES
+router.get('/', async (req, res) => {
+    try {
+        const [corredores] = await db.query('SELECT * FROM corredores');
+        res.json(corredores);
+    } catch (error) {
+        console.error('Erro ao buscar corredores: ', error.message);
+        res.status(500).json({ erro: error.message });
+    }
 });
 
-corredoresRoutes.post('/', (req, res) => {
-    const { nome, email, senha, turma } = req.body;
-    db.query('INSERT INTO corredores (nome, email, senha, turma) VALUES (?, ?, ?, ?)', [nome, email, senha, turma], (err, result) => {
-        if (err) {
-            console.error('Error adding piloto:', err);
-            res.status(500).json({ error: 'Internal server error' });
-        } else {
-            res.status(201).json({ id: result.insertId, nome, email, senha, turma });
-        }
-    });
+// CRIAR CORREDOR
+router.post('/', async (req, res) => {
+    const { nome, email, senha, turma, equipe } = req.body;
+
+    if (!nome || !email || !senha || !turma || !equipe) {
+        return res.status(400).json({ erro: 'Todos os campos são obrigatórios' });
+    }
+
+    try {
+        const [result] = await db.query(
+            'INSERT INTO corredores (nome, email, senha, turma, equipe) VALUES (?, ?, ?, ?, ?)',
+            [nome, email, senha, turma, equipe]
+        );
+
+        res.status(201).json({ id: result.insertId, nome, email, turma, equipe });
+
+    } catch (error) {
+        res.status(500).json({ erro: error.message });
+    }
 });
 
-corredoresRoutes.put('/:id', (req, res) => {
+
+// ATUALIZAR CORREDOR
+router.put('/:id', async (req, res) => {
     const { id } = req.params;
-    const { nome, email, senha, turma } = req.body;
-    db.query('UPDATE corredores SET nome = ?, email = ?, senha = ?, turma = ? WHERE id = ?', [nome, email, senha, turma, id], (err, result) => {
-        if (err) {
-            console.error('Error updating piloto:', err);
-            res.status(500).json({ error: 'Internal server error' });
-        } else {
-            res.json({ id, nome, email, senha, turma });
+    const { nome, email, senha, turma, equipe } = req.body;
+
+    if (!nome || !email || !senha || !turma || !equipe) {
+        return res.status(400).json({ erro: 'Todos os campos são obrigatórios' });
+    }
+
+    try {
+        const [result] = await db.query(
+            'UPDATE corredores SET nome = ?, email = ?, senha = ?, turma = ?, equipe = ? WHERE id = ?',
+            [nome, email, senha, turma, equipe, id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ erro: 'Corredor não encontrado' });
         }
-    });
+
+        res.json({ mensagem: 'Corredor atualizado com sucesso' });
+
+    } catch (error) {
+        res.status(500).json({ erro: error.message });
+    }
 });
 
-corredoresRoutes.delete('/:id', (req, res) => {
+// DELETAR CORREDOR
+router.delete('/:id', async (req, res) => {
     const { id } = req.params;
-    db.query('DELETE FROM corredores WHERE id = ?', [id], (err, result) => {
-        if (err) {
-            console.error('Error deleting piloto:', err);
-            res.status(500).json({ error: 'Internal server error' });
-        } else {
-            res.json({ message: 'Piloto deletado com sucesso' });
+    try {
+        const [result] = await db.query('DELETE FROM corredores WHERE id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ erro: 'Corredor não encontrado' });
         }
-    });
+        res.json({ mensagem: 'Corredor deletado com sucesso' });
+    } catch (error) {
+        console.error('Erro ao deletar corredor: ', error.message);
+        res.status(500).json({ erro: error.message });
+    }
 });
 
-module.exports = corredoresRoutes;
+module.exports = router;

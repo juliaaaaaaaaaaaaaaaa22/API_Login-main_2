@@ -3,71 +3,71 @@ const userRoutes = express.Router();
 const db = require('../db');
 
 // LISTAR TODOS OS USUÁRIOS
-userRoutes.get('/', (req, res) => {
-    db.query('SELECT * FROM users', (err, results) => {
-        if (err) {
-            console.error('Erro ao buscar usuários: ', err);
-            return res.status(500).json({ error: err.message });
-        }
-        res.json(results);
-    });
+userRoutes.get('/', async (req, res) => {
+    try {
+        const [users] = await db.query('SELECT * FROM users');
+        res.json(users);
+    } catch (error) {
+        console.error('Erro ao buscar usuários: ', error.message);
+        res.status(500).json({ erro: error.message });
+    }   
 });
 
 // CRIAR USUÁRIO
-userRoutes.post('/', (req, res) => {
+userRoutes.post('/', async (req, res) => {
     const { nome, email, senha } = req.body;
-
     if (!nome || !email || !senha) {
-        return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+        return res.status(400).json({ erro: 'Todos os campos são obrigatórios' });
     }
 
-    const sql = 'INSERT INTO users (nome, email, senha) VALUES (?, ?, ?)';
-    db.query(sql, [nome, email, senha], (err, results) => {
-        if (err) {
-            console.error('Erro ao criar usuário: ', err);
-            return res.status(500).json({ error: err.message });
-        }
-        res.status(201).json({ message: 'Usuário criado com sucesso', id: results.insertId });
-    });
+    try {
+        const [result] = await db.query(
+            'INSERT INTO users (nome, email, senha) VALUES (?, ?, ?)',
+            [nome, email, senha]
+        );
+        res.status(201).json({ id: result.insertId, nome, email });
+    } catch (error) {
+        console.error('Erro ao criar usuário: ', error.message);
+        res.status(500).json({ erro: error.message });
+    }
 });
 
 // ATUALIZAR USUÁRIO
-userRoutes.put('/:id', (req, res) => {
-    const { nome, email, senha } = req.body;
+userRoutes.put('/:id', async (req, res) => {
     const { id } = req.params;
-
+    const { nome, email, senha } = req.body;
     if (!nome || !email || !senha) {
-        return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+        return res.status(400).json({ erro: 'Todos os campos são obrigatórios' });
     }
 
-    const sql = 'UPDATE users SET nome = ?, email = ?, senha = ? WHERE idtable1 = ?';
-    db.query(sql, [nome, email, senha, id], (err, results) => {
-        if (err) {
-            console.error('Erro ao atualizar usuário: ', err);
-            return res.status(500).json({ error: err.message });
+    try {
+        const [result] = await db.query(
+            'UPDATE users SET nome = ?, email = ?, senha = ? WHERE id_users = ?',
+            [nome, email, senha, id]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ erro: 'Usuário não encontrado' });
         }
-        if (results.affectedRows === 0) {
-            return res.status(404).json({ error: 'Usuário não encontrado' });
-        }
-        res.json({ message: 'Usuário atualizado com sucesso' });
-    });
+        res.json({ mensagem: 'Usuário atualizado com sucesso' });
+    } catch (error) {
+        console.error('Erro ao atualizar usuário: ', error.message);
+        res.status(500).json({ erro: error.message });
+    }
 });
 
 // DELETAR USUÁRIO
-userRoutes.delete('/:id', (req, res) => {
+userRoutes.delete('/:id', async (req, res) => {
     const { id } = req.params;
-
-    const sql = 'DELETE FROM users WHERE idtable1 = ?';
-    db.query(sql, [id], (err, results) => {
-        if (err) {
-            console.error('Erro ao excluir usuário: ', err);
-            return res.status(500).json({ error: err.message });
+    try {
+        const [result] = await db.query('DELETE FROM users WHERE id_users = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ erro: 'Usuário não encontrado' });
         }
-        if (results.affectedRows === 0) {
-            return res.status(404).json({ error: 'Usuário não encontrado' });
-        }
-        res.json({ message: 'Usuário excluído com sucesso' });
-    });
+        res.json({ mensagem: 'Usuário excluído com sucesso' });
+    } catch (error) {
+        console.error('Erro ao excluir usuário: ', error.message);
+        res.status(500).json({ erro: error.message });
+    }
 });
 
-module.exports = userRoutes;    
+module.exports = userRoutes;
