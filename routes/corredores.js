@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+
+// Hash function (same as frontend)
+function hashPwd(pwd) {
+    return crypto.createHash('sha256').update(pwd + '_cowa_salt_2026').digest('hex');
+}
 
 // LISTAR TODOS OS CORREDORES
 router.get('/', async (req, res) => {
@@ -23,9 +28,15 @@ router.post('/', async (req, res) => {
     }
 
     try {
+        const [existing] = await db.query('SELECT id FROM corredores WHERE email = ?', [email]);
+        if (existing.length > 0) {
+            return res.status(409).json({ erro: 'E-mail já cadastrado' });
+        }
+
+        const hashedSenha = hashPwd(senha);
         const [result] = await db.query(
             'INSERT INTO corredores (nome, email, senha, turma, equipe) VALUES (?, ?, ?, ?, ?)',
-            [nome, email, senha, turma, equipe]
+            [nome, email, hashedSenha, turma, equipe]
         );
 
         res.status(201).json({ id: result.insertId, nome, email, turma, equipe });
@@ -41,15 +52,21 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { nome, email, senha, turma, equipe } = req.body;
 
-    if (!nome || !email || !senha || !turma || !equipe) {
+    if (!nome || !email || !turma || !equipe) {
         return res.status(400).json({ erro: 'Todos os campos são obrigatórios' });
     }
 
     try {
-        const [result] = await db.query(
-            'UPDATE corredores SET nome = ?, email = ?, senha = ?, turma = ?, equipe = ? WHERE id = ?',
-            [nome, email, senha, turma, equipe, id]
-        );
+        const hashedSenha = senha ? hashPwd(senha) : undefined;
+        const query = hashedSenha
+            ? 'UPDATE corredores SET nome = ?, email = ?, senha = ?, turma = ?, equipe = ? WHERE id = ?'
+            : 'UPDATE corredores SET nome = ?, email = ?, turma = ?, equipe = ? WHERE id = ?';
+        
+        const params = hashedSenha
+            ? [nome, email, hashedSenha, turma, equipe, id]
+            : [nome, email, turma, equipe, id];
+
+        const [result] = await db.query(query, params);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ erro: 'Corredor não encontrado' });
