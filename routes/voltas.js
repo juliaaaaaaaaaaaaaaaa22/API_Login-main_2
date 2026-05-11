@@ -5,7 +5,12 @@ const db = require('../db');
 // LISTAR TODAS AS VOLTAS
 router.get('/', async (req, res) => {
     try {
-        const [voltas] = await db.query('SELECT * FROM voltas ORDER BY data DESC');
+        const [voltas] = await db.query(`
+            SELECT v.*, c.nome AS corredor_nome, c.email AS corredor_email, c.turma, c.equipe
+            FROM voltas v
+            LEFT JOIN corredores c ON v.corredores_id = c.id
+            ORDER BY v.data DESC
+        `);
         res.json(voltas);
     } catch (error) {
         console.error('Erro ao buscar voltas: ', error.message);

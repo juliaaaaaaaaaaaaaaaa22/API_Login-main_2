@@ -8,10 +8,20 @@ function hashPwd(pwd) {
     return crypto.createHash('sha256').update(pwd + '_cowa_salt_2026').digest('hex');
 }
 
-// LISTAR TODOS OS CORREDORES
+// LISTAR TODOS OS CORREDORES COM ESTATÍSTICAS
 router.get('/', async (req, res) => {
     try {
-        const [corredores] = await db.query('SELECT * FROM corredores');
+        const [corredores] = await db.query(`
+            SELECT c.*,
+                   COUNT(v.id) AS total_voltas,
+                   MIN(v.tempo) AS melhor_tempo,
+                   AVG(v.tempo) AS tempo_medio,
+                   SUM(v.tempo) AS tempo_total
+            FROM corredores c
+            LEFT JOIN voltas v ON c.id = v.corredores_id
+            GROUP BY c.id
+            ORDER BY c.nome
+        `);
         res.json(corredores);
     } catch (error) {
         console.error('Erro ao buscar corredores: ', error.message);
@@ -47,7 +57,34 @@ router.post('/', async (req, res) => {
 });
 
 
-// ATUALIZAR CORREDOR
+// OBTER CORREDOR POR ID COM VOLTAS
+router.get('/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [corredor] = await db.query(`
+            SELECT c.*,
+                   COUNT(v.id) AS total_voltas,
+                   MIN(v.tempo) AS melhor_tempo,
+                   AVG(v.tempo) AS tempo_medio,
+                   SUM(v.tempo) AS tempo_total
+            FROM corredores c
+            LEFT JOIN voltas v ON c.id = v.corredores_id
+            WHERE c.id = ?
+            GROUP BY c.id
+        `, [id]);
+
+        if (corredor.length === 0) {
+            return res.status(404).json({ erro: 'Corredor não encontrado' });
+        }
+
+        const [voltas] = await db.query('SELECT * FROM voltas WHERE corredores_id = ? ORDER BY numero_volta', [id]);
+
+        res.json({ ...corredor[0], voltas });
+    } catch (error) {
+        console.error('Erro ao buscar corredor: ', error.message);
+        res.status(500).json({ erro: error.message });
+    }
+});
 router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { nome, email, senha, turma, equipe } = req.body;
